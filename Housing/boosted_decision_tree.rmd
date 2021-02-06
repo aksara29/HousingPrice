@@ -1,0 +1,76 @@
+---
+title: "regression_tree_boosting"
+author: "Graham Chalfant"
+date: "2/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(FSelector)
+library(dplyr)
+library(caTools)
+library(gbm)
+```
+
+------------------------------------------------------------------------
+
+## Data Understanding
+
+```{r}
+train <- read.csv("train.csv", stringsAsFactors = TRUE)
+
+test <- read.csv("test.csv", stringsAsFactors = TRUE)
+
+#create a test set without the saleprice and one with - way to check the model
+
+```
+
+```{r}
+str(train)
+```
+
+```{r}
+train_sample <- sample.split(train$SalePrice, SplitRatio = .8)
+
+train_1 <- subset(train, train_sample = TRUE) 
+train_2 <- subset(train, train_sample = FALSE)
+
+```
+
+```{r}
+# Train a 10000-tree GBM model
+set.seed(1)
+house_model <- gbm(formula = SalePrice ~ ., 
+                    distribution = "gaussian", #need to find best distribution
+                    data = train,
+                    n.trees = 10000)
+                    
+# Print the model object                    
+print(house_model) 
+
+# summary() prints variable importance
+summary(house_model)  
+
+```
+
+```{r}
+#predict on test set without saleprice
+predict(object = model, newdata = test,type = "response", n.trees = 10000)
+#type response converts the predicted values back to the same scale as the outcome 
+
+#example
+preds2 <- predict(object = credit_model, 
+                  newdata = credit_test,
+                  n.trees = 10000,
+                  type = "response")
+```
+
+```{r}
+#tuning or early stopping for gbm - number of trees and min observations in terminal node
+
+
+```
+
+![](C:/Users/16156/AppData/Local/RStudio/tmp/paste-A5C1FA71.png)
