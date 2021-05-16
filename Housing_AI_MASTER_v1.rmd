@@ -1,0 +1,845 @@
+---
+title: "House Price Prediction"
+author: "Aksara Iam"
+date: "2/7/2021"
+output: 
+  html_document: 
+    highlight: tango
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(FSelector)
+library(dplyr)
+library(caTools)
+library(gbm)
+library(ggpubr)
+library(gridExtra)
+#instfull_rmna.packages("caret")
+#instfull_rmna.packages("e1701")
+#instfull_rmna.packages("caTools")
+#instfull_rmna.packages("randomForest")
+#instfull_rmna.packages("lightgbm")
+#instfull_rmna.packages("pROC")
+#instfull_rmna.packages("ROSE")
+#instfull_rmna.packages("FSelector")
+#instfull_rmna.packages("tidyverse")
+#instfull_rmna.packages("Matrix")
+library(tidyverse)
+library(Matrix)
+library(randomForest)
+library(lightgbm)
+library(dplyr)
+library(skimr)
+```
+
+------------------------------------------------------------------------
+
+# EDA
+
+### **Data Definition**
+
+-   **SalePrice** - the property's sale price in dollars. This is the target variable that you're trying to predict.
+
+-   **MSSubClass**: The building class
+
+-   **MSZoning**: The general zoning classification
+
+-   **LotFrontage**: Linear feet of street connected to property
+
+-   **LotArea**: Lot size in square feet
+
+-   **Street**: Type of road access
+
+-   **full_rmnaey**: Type of full_rmnaey access
+
+-   **LotShape**: General shape of property
+
+-   **LandContour**: Flatness of the property
+
+-   **Utilities**: Type of utilities available
+
+-   **LotConfig**: Lot configuration
+
+-   **LandSlope**: Slope of property
+
+-   **Neighborhood**: Physical locations within Ames city limits
+
+-   **Condition1**: Proximity to main road or railroad
+
+-   **Condition2**: Proximity to main road or railroad (if a second is present)
+
+-   **BldgType**: Type of dwelling
+
+-   **HouseStyle**: Style of dwelling
+
+-   **Overfull_rmnaQual**: Overfull_rmna material and finish quality
+
+-   **Overfull_rmnaCond**: Overfull_rmna condition rating
+
+-   **YearBuilt**: Original construction date
+
+-   **YearRemodAdd**: Remodel date
+
+-   **RoofStyle**: Type of roof
+
+-   **RoofMatl**: Roof material
+
+-   **Exterior1st**: Exterior covering on house
+
+-   **Exterior2nd**: Exterior covering on house (if more than one material)
+
+-   **MasVnrType**: Masonry veneer type
+
+-   **MasVnrArea**: Masonry veneer area in square feet
+
+-   **ExterQual**: Exterior material quality
+
+-   **ExterCond**: Present condition of the material on the exterior
+
+-   **Foundation**: Type of foundation
+
+-   **BsmtQual**: Height of the basement
+
+-   **BsmtCond**: General condition of the basement
+
+-   **BsmtExposure**: Walkout or garden level basement wfull_rmnas
+
+-   **BsmtFinType1**: Quality of basement finished area
+
+-   **BsmtFinSF1**: Type 1 finished square feet
+
+-   **BsmtFinType2**: Quality of second finished area (if present)
+
+-   **BsmtFinSF2**: Type 2 finished square feet
+
+-   **BsmtUnfSF**: Unfinished square feet of basement area
+
+-   **TotalBsmtSF**: Total square feet of basement area
+
+-   **Heating**: Type of heating
+
+-   **HeatingQC**: Heating quality and condition
+
+-   **CentralAir**: Central air conditioning
+
+-   **Electrical**: Electrical system
+
+-   **1stFlrSF**: First Floor square feet
+
+-   **2ndFlrSF**: Second floor square feet
+
+-   **LowQualFinSF**: Low quality finished square feet (full_rmna floors)
+
+-   **GrLivArea**: Above grade (ground) living area square feet
+
+-   **BsmtFullBath**: Basement full bathrooms
+
+-   **BsmtHalfBath**: Basement half bathrooms
+
+-   **FullBath**: Full bathrooms above grade
+
+-   **HalfBath**: Half baths above grade
+
+-   **Bedroom**: Number of bedrooms above basement level
+
+-   **Kitchen**: Number of kitchens
+
+-   **KitchenQual**: Kitchen quality
+
+-   **TotRmsAbvGrd**: Total rooms above grade (does not include bathrooms)
+
+-   **Functional**: Home functionality rating
+
+-   **Fireplaces**: Number of fireplaces
+
+-   **FireplaceQu**: Fireplace quality
+
+-   **GarageType**: Garage location
+
+-   **GarageYrBlt**: Year garage was built
+
+-   **GarageFinish**: Interior finish of the garage
+
+-   **GarageCars**: Size of garage in car capacity
+
+-   **GarageArea**: Size of garage in square feet
+
+-   **GarageQual**: Garage quality
+
+-   **GarageCond**: Garage condition
+
+-   **PavedDrive**: Paved driveway
+
+-   **WoodDeckSF**: Wood deck area in square feet
+
+-   **OpenPorchSF**: Open porch area in square feet
+
+-   **EnclosedPorch**: Enclosed porch area in square feet
+
+-   **3SsnPorch**: Three season porch area in square feet
+
+-   **ScreenPorch**: Screen porch area in square feet
+
+-   **PoolArea**: Pool area in square feet
+
+-   **PoolQC**: Pool quality
+
+-   **Fence**: Fence quality
+
+-   **MiscFeature**: Miscellaneous feature not covered in other categories
+
+-   **MiscVal**: \$Value of miscellaneous feature
+
+-   **MoSold**: Month Sold
+
+-   **YrSold**: Year Sold
+
+-   **SaleType**: Type of sale
+
+-   **SaleCondition**: Condition of sale
+
+```{r pressure, echo=FALSE}
+# import data
+train = read.csv("train.csv", stringsAsFactors = FALSE)
+test = read.csv("test.csv", stringsAsFactors = FALSE)
+```
+
+```{r, eval=FALSE}
+# number of rows and columns
+glimpse(train)
+glimpse(test)
+
+# investigate data
+skim(train)
+skim(test)
+```
+
+```{r warning=FALSE}
+# Visualize variables
+
+plot1 <- function(df,f){
+  hist =  ggplot(df, aes_string(x=f)) + geom_histogram(color = 'black', fill = 'blue',bins = 50)
+  box = ggplot(df, aes_string(x=f)) + geom_boxplot(color = 'black', fill = 'blue') 
+  qq = ggplot(df, aes_string(sample=f)) + stat_qq() + stat_qq_line()  
+  
+  grid_plot <- gridExtra:: grid.arrange(hist, qq, box, ncol = 2)
+  ggsave(filename = paste0(f,".png"), plot=  grid_plot)
+}
+
+plot1(train, f ="SalePrice")
+
+#for (column in colnames(train)){if(class(train[column][1,1]) != "factor"){plot1(train, toString(column))}  }
+```
+
+From the plot above, we obviously see that;
+
+1.  The distribution of sale price is not normfull_rmnay distributed and right-skewed, where mode \> median \> mean.
+2.  The QQ plot confirms that sale price distribution is not normal.
+3.  The box plot and the histogram plots reveal that sale price value has high variation where median is approximately 170K and value for some observations is higher than Q3 (75th quantile).
+
+### Null Values and Incorrect Data Types
+
+Using `skim`, we see that
+
+1.  Our data has NULL values across variables.
+2.  Some features should be factors rather than numeric.
+
+Let's combine the data sets
+
+```{r}
+# save a target variable
+target = train$SalePrice 
+
+# extract id from test data
+test_id = test$Id
+
+# combine train and test data sets
+test$SalePrice = NA
+full = rbind(train,test)
+
+# remove the id column
+full = full[-1]
+dim(full)
+```
+
+Incorrect Data Types
+
+1.  We'll store several features in false_numeric variable, which will be transformed to factor.
+2.  We also want to remove features with null values more than 75%.
+
+```{r}
+false_numeric = c("MSSubClass", "Overfull_rmnaQual", "Overfull_rmnaCond", "YearBuilt", "YearRemodAdd", "GarageYrBlt", "MoSold", "YrSold")
+
+#sapply(full_data, function(x) sum(is.na(x)))
+#instfull_rmna.packages("VIM")
+library(VIM)
+aggr(full) #plot null values
+
+full_rmna <- full %>% 
+              purrr::discard(~sum(is.na(.x))/length(.x) >= 0.75) %>%
+              mutate(across(full_rmna_of(false_numeric), as.factor))
+
+aggr(full_rmna) #plot null values again
+```
+
+### Numerical vs Categorical Features
+
+Let's explore data across categorical and numerical variables.
+
+Categorical variables
+
+# notworking due to stringAsfactors changes 
+```{r}
+library(repr)
+options(repr.plot.width=10, repr.plot.height=12)
+
+full_rmna %>%
+    select(1:40) %>%
+    select_if(is.factor) %>%
+    pivot_longer(everything(), names_to = "fea", values_to = "categories") %>%
+    arrange(f) %>%
+    count(f, categories) %>%
+        ggplot(aes(x = categories, y = n)) +
+        geom_col(position = position_dodge()) +
+        facet_wrap(~ fea, scales = "free") +
+        labs(x = "", 
+             y = "Frequency",
+             title = "Frequency plot of categorical variables") +
+        theme_bw(base_size = 6) +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+full_rmna %>%
+    select(41:75) %>%
+    select_if(is.factor) %>%
+    pivot_longer(everything(), names_to = "fea", values_to = "categories") %>%
+    arrange(f) %>%
+    count(f, categories) %>%
+        ggplot(aes(x = categories, y = n)) +
+        geom_col(position = position_dodge()) +
+        facet_wrap(~ fea, scales = "free") +
+        labs(x = "", 
+             y = "Frequency",
+             title = "Frequency plot of of categorical variables") +
+        theme_bw(base_size = 6) +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+# notworking: Error in summarize(., count = n()) : argument "by" is missing, with no default
+```{r, eval=FALSE}
+# Class proportion for each variable
+full_cat_perc <- full_rmna %>%
+                select_if(is.factor) %>%
+                pivot_longer(cols = everything(), names_to = "feature", values_to = "categories") %>%
+                arrange(feature, categories) %>%
+                group_by(feature, categories) %>%
+                summarize(count = n()) %>%
+                mutate(percentage = count / sum(count) * 100)
+
+print(full_cat_perc)
+```
+
+# To delete
+```{r}
+full_rmna_cat = full_rmna[!is.na(full_rmna$SalePrice),] %>% 
+  select_if(is.factor) %>%
+  mutate(SalePrice = target)
+
+full_rmna_num = full_rmna[!is.na(full_rmna$SalePrice),] %>% 
+              select_if(is.integer) 
+```
+
+# To delete
+```{r, eval=FALSE}
+# To check relationship between sale price and categorical variables
+for (var in names(full_rmna_cat)){
+    plot<-ggplot(full_rmna_cat, aes(x=full_rmna_cat[[var]], y=SalePrice)) +
+    geom_boxplot() +
+    labs(
+        title = "Boxplot of sale price vs. categorical variables",
+        x = ""
+        ) +
+    theme_bw(base_size = 12) +
+    theme(axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5, hjust = 1))
+    
+    print(plot)
+}
+```
+
+# notworking
+```{r, eval=FALSE}
+# To check relationship between sale price and numerical variables
+full_rmna_num %>%
+    pivot_longer(-SalePrice, names_to = "feature", values_to = "value") %>%
+    ggplot(aes(x = value, y = SalePrice)) +
+    geom_point() +
+    geom_smooth(method = "lm", se = FALSE) +
+    facet_wrap(~feature, likerts = "free", ncol = 5) +
+    labs(title = "Relationship between numerical variables and sale price",
+    y = "SalePrice in US$",
+    x = "") + 
+    theme_bw(base_size = 6)
+```
+
+## Outliers
+
+- Do outliers even matter? Big houses need to be recognized too.
+
+```{r, eval=FALSE}
+loop.vector <- 1:38
+
+for (i in loop.vector) {
+  
+  x <- full_rmna_num[ ,i]
+  
+  print(boxplot(x, main = paste("Variable", colnames(full_rmna_num[i]))))
+  
+}
+
+
+```
+
+## Normality Test
+
+Need to change many of the numeric variables to categorical  
+
+Histograms
+```{r, eval=FALSE}
+loop.vector <- 1:29
+
+for (i in loop.vector) {
+  
+  x <- full_rmna_num[ ,i]
+  
+  print(histogram(x, main = paste("Variable", colnames(full_rmna_num[i]))))
+}
+
+```
+
+Plotting plot for full_rmna numeric variables 
+```{r, eval=FALSE}
+loop.vector <- 1:29
+
+for (i in loop.vector) {
+  
+  x <- full_rmna_num[ ,i]
+  
+  print(ggqqplot(x, main = paste("Variable", colnames(full_rmna_num[i]))))
+}
+
+
+```
+
+Shapiro Wilk Test
+```{r, eval=FALSE}
+
+loop.vector <- 1:29
+
+for (i in loop.vector) {
+  
+  x <- full_rmna_num[ ,i]
+  print(colnames(full_rmna_num[i]))
+  print(shapiro.test(x))
+}
+
+#if > 0.5 then it is considered normal - NOTHING IS NORMAL!
+```
+
+# Data Preparation
+
+Before we move to the next step, we should remind ourselves if we want to use regression to predict the price.
+
+LR Assumption
+
+1.  Linearity (linear relationship between y and x)
+
+2.  Homoscedasticity (residuals vs fitted values) i.e. variance of residuals is constant
+
+3.  No multicollinearity between predictors
+
+4.  Normality (residuals are normfull_rmnay distributed)
+
+5.  Independence (residuals are not correlated)
+
+### Null values
+
+Categorical
+
+(Note that we possibly need to compare the result after modelling between the 4 features with 80% NA values vs impute them with 'None')
+
+```{r}
+# Note that we possibly need to compare the result after modelling between the 4 features with 80% NA values vs impute them with 'None')
+
+#full_rmna$PoolQC[is.na(full_rmna$PoolQC)] = 'None'
+#full_rmna$MiscFeature[is.na(full_rmna$MiscFeature)] = 'None'
+#full_rmna$MiscFeature[is.na(full_rmna$full_rmnaey)] = 'None'
+#full_rmna$MiscFeature[is.na(full_rmna$Fence)] = 'None'
+```
+
+```{r}
+# detect missing values
+# sapply(full_rmna, function(x) sum(is.na(x)))
+# sapply(full_rmna, function(y) round((sum(length(which(is.na(y))))/nrow(full_rmna))*100.00,2))
+
+NAcols <- which(colSums(is.na(full_rmna)) > 0)
+sort(colSums(sapply(full_rmna[NAcols], is.na)), decreasing = TRUE)
+length(NAcols)
+
+# find mode
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+```
+
+### Imputation
+
+```{r}
+# data imputation
+# step1: categorical data with missing values
+replace_na(full_rmna$FireplaceQu[is.na(full_rmna$FireplaceQu)],'None')
+
+# Qualities var provides the same values
+library(plyr)
+full_rmna$FireplaceQu = as.integer(revalue(full_rmna$FireplaceQu, c("None" = "0")))
+
+# LotFrontage: Linear feet of street connected to property
+# Neighborhood: Physical locations within Ames city limits
+ggplot(full_rmna[!is.na(full_rmna$LotFrontage),], aes(x=LotFrontage)) +
+  geom_histogram(fill='blue')
+  
+ggplot(full_rmna[!is.na(full_rmna$LotFrontage),], aes(x=as.factor(Neighborhood), y=LotFrontage)) +
+  geom_col(fill='blue') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(full_rmna[!is.na(full_rmna$LotFrontage),], aes(x=as.factor(Neighborhood), y=LotFrontage)) +
+  stat_summary(fun.y = "mean", geom = "bar", fill = "#EB5286", alpha = .5) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(full_rmna[!is.na(full_rmna$LotFrontage),], aes(x=as.factor(Neighborhood), y=LotFrontage)) +
+  stat_summary(fun.y = "median", geom = "bar", fill = "#EB5286", alpha = .5) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+(  full_rmna %>%
+  group_by(Neighborhood) %>% summarise(mean = mean(LotFrontage, na.rm=TRUE), median = median(LotFrontage, na.rm=TRUE))  ) -> NB_summary
+
+ 
+library(Hmisc)
+#full_rmna$LotFrontage = full_rmna %>% group_by(Neighborhood) %>% with(impute(LotFrontage, median))
+
+```
+
+```{r}
+
+# step2: replace with mode
+likertsc <- c('None' = 0, 'Po' = 1, 'Fa' = 2, 'TA' = 3, 'Gd' = 4, 'Ex' = 5)
+
+full_rmna$Functional = replace_na(full_rmna$Functional, 'Typ')
+full_rmna$Functional = as.factor(full_rmna$Functional)
+  
+full_rmna$Electrical = replace_na(full_rmna$Electrical, 'SBrkr')
+full_rmna$Electrical = as.factor(full_rmna$Electrical)
+  
+full_rmna$KitchenQual = replace_na(full_rmna$KitchenQual, 'TA')
+full_rmna$KitchenQual = as.integer(revalue(full_rmna$KitchenQual, likertsc))
+
+  
+full_rmna$Exterior1st = replace_na(full_rmna$Exterior1st, 'VinylSd')
+full_rmna$Exterior1st = as.factor(full_rmna$Exterior1st)
+    
+full_rmna$Exterior2nd = replace_na(full_rmna$Exterior2nd, 'VinylSd')
+full_rmna$Exterior2nd = as.factor(full_rmna$Exterior2nd)
+  
+full_rmna$SaleType = replace_na(full_rmna$SaleType, 'WD')  
+full_rmna$SaleType = as.factor(full_rmna$SaleType)
+
+```
+
+```{r}
+#step3: replace with 'None'
+full_rmna$GarageCars[is.na(full_rmna$GarageCars)] = 0
+full_rmna$GarageArea[is.na(full_rmna$GarageArea)] = 0
+
+#replace GarageYrBlt: Year garage was built values, with the values in YearBuilt
+full_rmna$GarageYrBlt[is.na(full_rmna$GarageYrBlt)] = full_rmna$YearBuilt[is.na(full_rmna$GarageYrBlt)]
+
+full_rmna$GarageType[is.na(full_rmna$GarageType)] = 'No Garage'
+full_rmna$GarageType = as.factor(full_rmna$GarageType)
+
+full_rmna$GarageFinish[is.na(full_rmna$GarageFinish)] <- 'None'
+full_rmna$GarageFinish<-as.integer(revalue(full_rmna$GarageFinish, c('None'=0, 'Unf'=1, 'RFn'=2, 'Fin'=3)))
+
+full_rmna$GarageQual[is.na(full_rmna$GarageQual)] = 'None'
+full_rmna$GarageQual<-as.integer(revalue(full_rmna$GarageQual, likertsc))
+
+full_rmna$GarageCond[is.na(full_rmna$GarageCond)] = 'None'
+full_rmna$GarageCond = as.integer(revalue(full_rmna$GarageCond, likertsc))
+```
+
+```{r}
+# median of Lotfrontage by Neighborhood group        
+for (i in 1:nrow(full_rmna)){
+        if(is.na(full_rmna$LotFrontage[i])){
+               full_rmna$LotFrontage[i] <- as.integer(median(full_rmna$LotFrontage[full_rmna$Neighborhood==full_rmna$Neighborhood[i]], na.rm=TRUE)) 
+        }
+}
+```
+
+```{r}
+full_rmna$BsmtQual[is.na(full_rmna$BsmtQual)] <- 'None'
+full_rmna$BsmtQual = as.integer(revalue(full_rmna$BsmtQual, likertsc))
+
+
+full_rmna$BsmtCond[is.na(full_rmna$BsmtCond)] <- 'None'
+full_rmna$BsmtCond = as.integer(revalue(full_rmna$BsmtCond, likertsc))
+
+full_rmna$BsmtExposure[is.na(full_rmna$BsmtExposure)] <- 'None'
+full_rmna$BsmtExposure = as.integer(revalue(full_rmna$BsmtExposure, c('None'=0, 'No'=1, 'Mn'=2, 'Av'=3, 'Gd'=4)))
+
+full_rmna$BsmtFinType1[is.na(full_rmna$BsmtFinType1)] <- 'None'
+full_rmna$BsmtFinType1 = as.integer(revalue(full_rmna$BsmtFinType1, c('None'=0, 'Unf'=1, 'LwQ'=2, 'Rec'=3, 'BLQ'=4, 'ALQ'=5, 'GLQ'=6)))
+
+full_rmna$BsmtFinType2[is.na(full_rmna$BsmtFinType2)] <- 'None'
+full_rmna$BsmtFinType2 = as.integer(revalue(full_rmna$BsmtFinType2, FinType <- c('None'=0, 'Unf'=1, 'LwQ'=2, 'Rec'=3, 'BLQ'=4, 'ALQ'=5, 'GLQ'=6)))
+
+
+full_rmna$BsmtFullBath[is.na(full_rmna$BsmtFullBath)] = 0
+full_rmna$BsmtHalfBath[is.na(full_rmna$BsmtHalfBath)] = 0
+full_rmna$BsmtFinSF1[is.na(full_rmna$BsmtFinSF1)] = 0
+full_rmna$BsmtFinSF2[is.na(full_rmna$BsmtFinSF2)] = 0
+full_rmna$BsmtUnfSF[is.na(full_rmna$BsmtUnfSF)] = 0
+full_rmna$TotalBsmtSF[is.na(full_rmna$TotalBsmtSF)] = 0
+```
+
+```{r}
+full_rmna$MasVnrType[is.na(full_rmna$MasVnrType)] = 'None'
+full_rmna$MasVnrType = as.factor(full_rmna$MasVnrType)
+
+
+full_rmna$MasVnrArea[is.na(full_rmna$MasVnrArea)] = 0
+```
+
+```{r}
+full_rmna$MSZoning[is.na(full_rmna$MSZoning)] = names(sort(-table(full_rmna$MSZoning)))[1]
+full_rmna$MSZoning = as.factor(full_rmna$MSZoning)
+table(full_rmna$MSZoning)
+```
+
+## Factorization
+
+```{r}
+(  char <- names(full_rmna[,sapply(full_rmna, is.character)]) )
+```
+
+```{r}
+full_rmna$Utilities <- as.factor(full_rmna$Utilities)
+full_rmna$SaleCondition <- as.factor(full_rmna$SaleCondition)
+full_rmna$Foundation <- as.factor(full_rmna$Foundation)
+full_rmna$Heating <- as.factor(full_rmna$Heating)
+full_rmna$HeatingQC<-as.integer(revalue(full_rmna$HeatingQC, likertsc))
+full_rmna$RoofStyle <- as.factor(full_rmna$RoofStyle)
+full_rmna$RoofMatl <- as.factor(full_rmna$RoofMatl)
+full_rmna$CentralAir<-as.integer(revalue(full_rmna$CentralAir, c('N'=0, 'Y'=1)))
+full_rmna$LandContour <- as.factor(full_rmna$LandContour)
+full_rmna$LandSlope<-as.integer(revalue(full_rmna$LandSlope, c('Sev'=0, 'Mod'=1, 'Gtl'=2)))
+full_rmna$BldgType <- as.factor(full_rmna$BldgType)
+full_rmna$HouseStyle <- as.factor(full_rmna$HouseStyle)
+full_rmna$Neighborhood <- as.factor(full_rmna$Neighborhood)
+full_rmna$Condition1 <- as.factor(full_rmna$Condition1)
+full_rmna$Condition2 <- as.factor(full_rmna$Condition2)
+full_rmna$Street<-as.integer(revalue(full_rmna$Street, c('Grvl'=0, 'Pave'=1)))
+full_rmna$LotShape<-as.integer(revalue(full_rmna$LotShape, c('IR3'=0, 'IR2'=1, 'IR1'=2, 'Reg'=3)))
+full_rmna$LotConfig <- as.factor(full_rmna$LotConfig)
+full_rmna$PavedDrive<-as.integer(revalue(full_rmna$PavedDrive, c('N'=0, 'P'=1, 'Y'=2)))
+full_rmna$ExterQual<-as.integer(revalue(full_rmna$ExterQual, likertsc))
+full_rmna$ExterCond<-as.integer(revalue(full_rmna$ExterCond, likertsc))
+
+str(full_rmna$MSSubClass)
+full_rmna$MSSubClass <- as.factor(full_rmna$MSSubClass)
+```
+
+### Data Class
+
+```{r}
+glimpse(full_rmna)
+full_rmna$YrSold <- as.factor(full_rmna$YrSold)
+full_rmna$MoSold <- as.factor(full_rmna$MoSold)
+```
+
+```{r}
+num_vars <- which(sapply(full_rmna, is.numeric)) #index vector numeric variables
+factor_vars <- which(sapply(full_rmna, is.factor)) #index vector factor variables
+cat('There are', length(num_vars), 'numeric variables, and', length(factor_vars), 'categoric variables')
+```
+
+- Corrleation
+```{r}
+full_rmna_numvar <- full_rmna[, num_vars]
+cor_numvar <- cor(full_rmna_numvar, use="pairwise.complete.obs") #correlations of full_rmna numeric variables
+
+#sort on decreasing correlations with SalePrice
+cor_sorted <- as.matrix(sort(cor_numvar[,'SalePrice'], decreasing = TRUE))
+
+#select only high corelations
+corhigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
+cor_numvar <- cor_numvar[corhigh, corhigh]
+
+library(corrplot)
+corrplot.mixed(cor_numvar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+```
+
+- Information Gain
+```{r}
+#use train set with full_rmna variables apart of Id
+train_1 <- full_rmna[!is.na(full_rmna$SalePrice),]
+var_names = data.frame(colnames(train_1)) 
+
+attr_weights = information.gain(SalePrice~., train_1) 
+attr_weights$name = var_names[1:75,]
+
+ggplot(attr_weights) + geom_point(aes(x=attr_importance, y = name)) #not sure how to change the height of the plot so that variable names are not overwritten
+
+#sort those which are above 0 
+imp_attrib = subset(attr_weights, attr_weights$attr_importance > 0)
+
+# How to sort imp_attrib?
+```
+
+```{r}
+dropvars <- c('GarageArea', 'X1stFlrSF', 'TotalRmsAbvGrd', 'GarageYrBlt')
+full_rmna <- full_rmna[,!(names(full_rmna) %in% dropvars)]
+```
+
+
+## Before Modelling
+
+### Log transformation
+
+- We need to transform our target variable (SalePrice)
+```{r}
+full_rmna$SalePrice <- log(full_rmna$SalePrice)
+qqnorm(full_rmna$SalePrice)
+qqline(full_rmna$SalePrice)
+```
+
+```{r}
+numericVarNames <- names(num_vars)
+
+numericVarNames <- numericVarNames[!(numericVarNames %in% c('MSSubClass', 'MoSold', 'YrSold', 'SalePrice', 'OverallQual', 'OverallCond'))]
+DFnumeric <- full_rmna[, names(full_rmna) %in% numericVarNames]
+
+DFfactors <- full_rmna[, !(names(full_rmna) %in% numericVarNames)]
+DFfactors <- DFfactors[, names(DFfactors) != 'SalePrice']
+```
+
+# not working
+```{r}
+library(psych) 
+
+for(i in 1:ncol(DFnumeric)) {
+        if (abs(skew(DFnumeric[,i])) > 0.8) {
+                DFnumeric[,i] <- log(DFnumeric[,i] +1)
+        }
+}
+```
+
+```{r}
+PreNum <- preProcess(DFnumeric, method=c("center", "scale"))
+print(PreNum)
+
+
+DFnorm <- predict(PreNum, DFnumeric)
+dim(DFnorm)
+```
+
+```{r}
+DFdummies <- as.data.frame(model.matrix(~.-1, DFfactors))
+dim(DFdummies)
+```
+
+```{r}
+agg_data <- cbind(DFnorm, DFdummies)
+```
+
+- Split the data
+```{r}
+train_1 <- agg_data[!is.na(full_rmna$SalePrice),]
+test_1 <- agg_data[is.na(full_rmna$SalePrice),]
+```
+
+### Model
+
+1.1 GBM
+
+```{r}
+# Train a 10000-tree GBM model
+set.seed(1)
+house_model <- gbm(formula = SalePrice ~ ., 
+                    distribution = "gaussian", #need to find best distribution
+                    data = train,
+                    n.trees = 10000)
+                    
+# Print the model object                    
+print(house_model) 
+
+# summary() prints variable importance
+summary(house_model)  
+
+```
+
+```{r}
+#predict on test set without saleprice
+predict(object = model, newdata = test,type = "response", n.trees = 10000)
+#type response converts the predicted values back to the same likert as the outcome 
+
+#example
+preds2 <- predict(object = credit_model, 
+                  newdata = credit_test,
+                  n.trees = 10000,
+                  type = "response")
+```
+
+```{r}
+#tuning or early stopping for gbm - number of trees and min observations in terminal node
+
+
+```
+
+1.2 Lasso Regression
+
+```{r}
+library(caret)
+set.seed(60)
+control <-trainControl(method="cv", number=5)
+lassogrid <- expand.grid(alpha = 1, lambda = seq(0.001,0.1, by = 0.0005))
+
+lasso_model <- train(x=train_1, y=full_rmna$SalePrice[!is.na(full_rmna$SalePrice)], method='glmnet', trControl= control, tuneGrid=lassogrid) 
+
+lasso_model$bestTune
+```
+
+```{r}
+min(lasso_mod$results$RMSE)
+```
+
+1.3 XG Boost
+
+```{r}
+xgb_grid = expand.grid(
+nrounds = 1000,
+eta = c(0.1, 0.05, 0.01),
+max_depth = c(2, 3, 4, 5, 6),
+gamma = 0,
+colsample_bytree=1,
+min_child_weight=c(1, 2, 3, 4 ,5),
+subsample=1
+)
+```
+
+```{r}
+xgb_caret <- train(x=train1, y=full_rmna$SalePrice[!is.na(full_rmna$SalePrice)], method='xgbTree', trControl= my_control, tuneGrid=xgb_grid) 
+xgb_caret$bestTune
+```
+
+1.4 SVM and RF?
